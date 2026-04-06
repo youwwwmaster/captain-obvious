@@ -19,6 +19,10 @@ export const config = {
     token: required('BOT_TOKEN'),
     webhookDomain: required('WEBHOOK_DOMAIN'),
     webhookPort: parseInt(optional('WEBHOOK_PORT', '3000')),
+    supportReply: optional(
+      'SUPPORT_REPLY',
+      'Напишите владельцу бота — контакт обычно указан в описании бота в Telegram. Поддержка Telegram и @botsupport не обрабатывают покупки в этом боте.'
+    ),
   },
   ai: {
     provider: optional('AI_PROVIDER', 'openai') as 'openai' | 'anthropic',

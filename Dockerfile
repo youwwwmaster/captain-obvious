@@ -12,6 +12,7 @@ RUN npm install --omit=dev
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/src/db/migrations ./dist/db/migrations
 COPY prompt.md ./
+COPY terms.md ./
 
 EXPOSE 3000
 

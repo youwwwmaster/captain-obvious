@@ -9,6 +9,7 @@ services:
       - .env
     volumes:
       - ./prompt.md:/app/prompt.md
+      - ./terms.md:/app/terms.md
     depends_on:
       postgres:
         condition: service_healthy
