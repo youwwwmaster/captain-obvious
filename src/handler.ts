@@ -13,9 +13,15 @@ const TRIGGERS = [
   'капитан объясняй',
 ];
 
+const LIMIT_TRIGGER = 'эй капитан лимит';
+
 const UNKNOWN_MESSAGE = 'Мы не знаем что это такое.... Если бы мы знали что это такое...';
 
 const provider = config.ai.provider === 'anthropic' ? anthropicProvider : openaiProvider;
+
+function hasLimitTrigger(text: string): boolean {
+  return text.toLowerCase().includes(LIMIT_TRIGGER);
+}
 
 function hasTrigger(text: string): boolean {
   const lower = text.toLowerCase();
@@ -27,6 +33,18 @@ export async function handleMessage(ctx: Context): Promise<void> {
   if (!msg || !ctx.from) return;
 
   const text = msg.text || msg.caption || '';
+
+  // Лимит: без реплая, без списания запроса, до остальных триггеров
+  if (hasLimitTrigger(text)) {
+    const user = await findOrCreateUser(ctx.from.id, ctx.from.username);
+    const used = await countTodayRequests(user.id);
+    const remaining = Math.max(0, user.daily_limit - used);
+    await ctx.reply(
+      `Капитан подсказывает: за последние 24 часа ты использовал ${used} из ${user.daily_limit} запросов. Осталось: ${remaining}.`,
+      { reply_parameters: { message_id: msg.message_id } }
+    );
+    return;
+  }
 
   // 1. Есть триггер? Нет → игнор (без БД)
   if (!hasTrigger(text)) return;
