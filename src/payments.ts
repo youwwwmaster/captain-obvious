@@ -1,19 +1,29 @@
 import { Context } from 'grammy';
+import { config } from './config';
 import { db } from './db';
 import { getUserById, findOrCreateUser } from './db/repositories/user';
 
-export const STARS_EXTRA_PACK_PRICE = 2;
-export const STARS_EXTRA_PACK_CALLS = 10;
-const PAYLOAD_PREFIX = 'bonus10:';
-const PAYLOAD_REGEX = /^bonus10:[0-9a-f-]{36}$/i;
+export const STARS_EXTRA_PACK_PRICE = config.stars.packPrice;
+export const STARS_EXTRA_PACK_CALLS = config.stars.packCalls;
+
+const PAYLOAD_PREFIX = 'bonus:';
+/** Старые счета до смены префикса */
+const LEGACY_PAYLOAD_PREFIX = 'bonus10:';
 
 function buildPayload(userInternalId: string): string {
   return `${PAYLOAD_PREFIX}${userInternalId}`;
 }
 
 export function parseBonusPayload(payload: string): string | null {
-  if (!PAYLOAD_REGEX.test(payload)) return null;
-  return payload.slice(PAYLOAD_PREFIX.length);
+  if (payload.startsWith(PAYLOAD_PREFIX)) {
+    const id = payload.slice(PAYLOAD_PREFIX.length);
+    return /^[0-9a-f-]{36}$/i.test(id) ? id : null;
+  }
+  if (payload.startsWith(LEGACY_PAYLOAD_PREFIX)) {
+    const id = payload.slice(LEGACY_PAYLOAD_PREFIX.length);
+    return /^[0-9a-f-]{36}$/i.test(id) ? id : null;
+  }
+  return null;
 }
 
 export async function sendExtraCallsInvoice(
@@ -26,7 +36,7 @@ export async function sendExtraCallsInvoice(
   const u = await findOrCreateUser(user.id, user.username);
 
   await ctx.replyWithInvoice(
-    '+10 вызовов Капитана',
+    `+${STARS_EXTRA_PACK_CALLS} вызовов Капитана`,
     'Покупка без срока: тратятся только после исчерпания бесплатных вызовов за 24ч.',
     buildPayload(u.id),
     'XTR',

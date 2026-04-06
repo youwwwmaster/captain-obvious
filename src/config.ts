@@ -14,6 +14,14 @@ function optional(key: string, def: string): string {
   return process.env[key] || def;
 }
 
+function parsePositiveInt(key: string, def: string, min: number): number {
+  const n = parseInt(optional(key, def), 10);
+  if (!Number.isFinite(n) || n < min) {
+    throw new Error(`Переменная ${key} должна быть целым числом ≥ ${min}`);
+  }
+  return n;
+}
+
 export const config = {
   bot: {
     token: required('BOT_TOKEN'),
@@ -33,4 +41,9 @@ export const config = {
     url: required('DATABASE_URL'),
   },
   dailyLimit: parseInt(optional('DAILY_LIMIT', '10')),
+  /** Пакет Stars: цена в XTR и сколько бонусных вызовов начисляется */
+  stars: {
+    packPrice: parsePositiveInt('STARS_PACK_PRICE', '3', 1),
+    packCalls: parsePositiveInt('STARS_PACK_CALLS', '10', 1),
+  },
 };
