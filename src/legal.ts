@@ -1,7 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { Context } from 'grammy';
-import { config } from './config';
 
 const TERMS_PATH = path.join(process.cwd(), 'terms.md');
 
@@ -30,10 +29,4 @@ export async function handleTermsCommand(ctx: Context): Promise<void> {
       ...(i === 0 && ctx.message ? { reply_parameters: { message_id: ctx.message.message_id } } : {}),
     });
   }
-}
-
-export async function handleSupportCommand(ctx: Context): Promise<void> {
-  await ctx.reply(config.bot.supportReply, {
-    reply_parameters: ctx.message ? { message_id: ctx.message.message_id } : undefined,
-  });
 }
