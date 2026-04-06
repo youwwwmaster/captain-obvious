@@ -1,4 +1,4 @@
-import { Bot, webhookCallback } from 'grammy';
+import { Bot, Context, webhookCallback } from 'grammy';
 import { config } from './config';
 import { handleMessage } from './handler';
 import { handlePreCheckoutQuery, handleSuccessfulStarPayment } from './payments';
@@ -7,6 +7,21 @@ import { handleSupportCommand } from './support';
 import { handleStartCommand } from './welcome';
 
 export const bot = new Bot(config.bot.token);
+
+/** Deep link `t.me/bot?start=terms` → в чат приходит `/start terms`. */
+function startPayload(ctx: Context): string {
+  const t = ctx.message?.text?.trim() ?? '';
+  const m = t.match(/^\/start(?:@[\w]+)?(?:\s+(\S+))?/i);
+  return (m?.[1] ?? '').trim();
+}
+
+async function handleStartRoute(ctx: Context): Promise<void> {
+  if (startPayload(ctx) === 'terms') {
+    await handleTermsCommand(ctx);
+    return;
+  }
+  await handleStartCommand(ctx);
+}
 
 bot.on('pre_checkout_query', handlePreCheckoutQuery);
 
@@ -18,7 +33,7 @@ bot.use(async (ctx, next) => {
   await next();
 });
 
-bot.command('start', handleStartCommand);
+bot.command('start', handleStartRoute);
 bot.command('terms', handleTermsCommand);
 bot.command('support', handleSupportCommand);
 

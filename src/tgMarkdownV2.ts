@@ -50,3 +50,9 @@ export function mdItalic(text: string): string {
 export function mdCode(text: string): string {
   return `\`${escapeMd2Code(text)}\``;
 }
+
+/** Inline-ссылка: в URL экранируются `)` и `\` (Bot API MarkdownV2). */
+export function mdLink(label: string, url: string): string {
+  const escUrl = url.replace(/\\/g, '\\\\').replace(/\)/g, '\\)');
+  return `[${escapeMarkdownV2(label)}](${escUrl})`;
+}

@@ -11,6 +11,7 @@ import {
 } from './db/repositories/request';
 import { sendExtraCallsInvoice, STARS_EXTRA_PACK_PRICE, STARS_EXTRA_PACK_CALLS } from './payments';
 import { maybeHandleSupportReply } from './support';
+import { escapeMarkdownV2 as esc, mdBold as b, mdItalic as i, mdLink } from './tgMarkdownV2';
 
 const TRIGGERS = [
   'капитан объясни',
@@ -50,10 +51,18 @@ export async function handleMessage(ctx: Context): Promise<void> {
     const freeUsed = await countFreeRequestsLast24h(user.id);
     const remainingFree = Math.max(0, user.daily_limit - freeUsed);
     const bonus = Number(user.bonus_balance) || 0;
-    await ctx.reply(
-      `Капитан подсказывает: бесплатных за последние 24 ч: ${freeUsed} из ${user.daily_limit} (осталось ${remainingFree}). Купленных вызовов в запасе: ${bonus}.`,
-      { reply_parameters: { message_id: msg.message_id } }
-    );
+    const limitStatsMsg = [
+      `🧭 ${b('Капитан подсказывает')}`,
+      '',
+      `⏱ ${esc('Базовые запросы за последние 24 часа')}`,
+      `${b(`${freeUsed} из ${user.daily_limit}`)} · ${esc('осталось')} ${b(String(remainingFree))}`,
+      '',
+      `⭐ ${esc('Экстра-вызовов в запасе:')} ${b(String(bonus))}`,
+    ].join('\n');
+    await ctx.reply(limitStatsMsg, {
+      parse_mode: 'MarkdownV2',
+      reply_parameters: { message_id: msg.message_id },
+    });
     return;
   }
 
@@ -104,10 +113,26 @@ export async function handleMessage(ctx: Context): Promise<void> {
   const canUseBonus = bonus > 0;
 
   if (!canUseFree && !canUseBonus) {
-    await ctx.reply(
-      `Капитан устал! Бесплатный лимит ${user.daily_limit} запросов за 24 ч исчерпан, купленных вызовов нет. За ${STARS_EXTRA_PACK_PRICE} ⭐ — ещё ${STARS_EXTRA_PACK_CALLS} вызовов без срока (тратятся после бесплатных). Счёт ниже.`,
-      { reply_parameters: { message_id: msg.message_id } }
-    );
+    const uname = (ctx.me?.username || config.bot.botUsername).trim();
+    const termsLine = uname
+      ? `_${esc('Оплачивая, ты принимаешь ')}${mdLink(
+          'условия использования бота',
+          `https://t.me/${uname}?start=terms`
+        )}${esc('.')}_`
+      : i('Оплачивая, ты принимаешь условия использования.');
+    const limitMsg = [
+      `😮‍💨 ${b('Капитан устал...')}`,
+      `${esc('Базовый лимит ')}${b(`${user.daily_limit} запросов`)}${esc(' за 24 ч исчерпан!')}`,
+      '',
+      `☕ ${esc('Но если подкинешь на рюмку кофе — ')}${b(`${STARS_EXTRA_PACK_PRICE} ⭐`)}${esc(' я расскажу ещё ')}${b(`${STARS_EXTRA_PACK_CALLS} историй`)}${esc('!')}`,
+      '',
+      termsLine,
+    ].join('\n');
+    await ctx.reply(limitMsg, {
+      parse_mode: 'MarkdownV2',
+      link_preview_options: { is_disabled: true },
+      reply_parameters: { message_id: msg.message_id },
+    });
     await sendExtraCallsInvoice(ctx, msg.message_id);
     return;
   }
