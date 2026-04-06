@@ -1,0 +1,24 @@
+{
+  "name": "captain-obvious-bot",
+  "version": "0.1.0",
+  "description": "Telegram бот Капитан Очевидность",
+  "private": true,
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/main.js",
+    "dev": "ts-node src/main.ts"
+  },
+  "dependencies": {
+    "grammy": "^1.19.2",
+    "openai": "^4.47.0",
+    "@anthropic-ai/sdk": "^0.24.0",
+    "pg": "^8.11.3",
+    "dotenv": "^16.4.5"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.5",
+    "@types/pg": "^8.11.6",
+    "typescript": "^5.7.2",
+    "ts-node": "^10.9.2"
+  }
+}

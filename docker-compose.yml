@@ -1,0 +1,33 @@
+services:
+  bot:
+    build: .
+    container_name: captain-obvious-bot
+    restart: unless-stopped
+    ports:
+      - "${WEBHOOK_PORT:-3000}:3000"
+    env_file:
+      - .env
+    volumes:
+      - ./prompt.md:/app/prompt.md
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: captain-obvious-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: captain_obvious
+      POSTGRES_USER: captain
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-captain123}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U captain"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres-data:
