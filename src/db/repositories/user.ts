@@ -6,6 +6,7 @@ export interface User {
   telegram_id: string;
   username: string | null;
   daily_limit: number;
+  bonus_balance: number;
   created_at: Date;
 }
 
@@ -23,4 +24,9 @@ export async function findOrCreateUser(telegramId: number, username?: string): P
   );
 
   return created.rows[0];
+}
+
+export async function getUserById(id: string): Promise<User | null> {
+  const r = await db.query<User>('SELECT * FROM users WHERE id = $1', [id]);
+  return r.rows[0] || null;
 }

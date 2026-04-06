@@ -1,0 +1,116 @@
+import { Context } from 'grammy';
+import { db } from './db';
+import { getUserById, findOrCreateUser } from './db/repositories/user';
+
+export const STARS_EXTRA_PACK_PRICE = 2;
+export const STARS_EXTRA_PACK_CALLS = 10;
+const PAYLOAD_PREFIX = 'bonus10:';
+const PAYLOAD_REGEX = /^bonus10:[0-9a-f-]{36}$/i;
+
+function buildPayload(userInternalId: string): string {
+  return `${PAYLOAD_PREFIX}${userInternalId}`;
+}
+
+export function parseBonusPayload(payload: string): string | null {
+  if (!PAYLOAD_REGEX.test(payload)) return null;
+  return payload.slice(PAYLOAD_PREFIX.length);
+}
+
+export async function sendExtraCallsInvoice(
+  ctx: Context,
+  replyToMessageId: number
+): Promise<void> {
+  const user = ctx.from;
+  if (!user) return;
+
+  const u = await findOrCreateUser(user.id, user.username);
+
+  await ctx.replyWithInvoice(
+    '+10 вызовов Капитана',
+    'Покупка без срока: тратятся только после исчерпания бесплатных вызовов за 24ч.',
+    buildPayload(u.id),
+    'XTR',
+    [{ label: `+${STARS_EXTRA_PACK_CALLS} вызовов`, amount: STARS_EXTRA_PACK_PRICE }],
+    {
+      provider_token: '',
+      reply_parameters: { message_id: replyToMessageId },
+    }
+  );
+}
+
+export async function handlePreCheckoutQuery(ctx: Context): Promise<void> {
+  const q = ctx.preCheckoutQuery;
+  if (!q) return;
+
+  const userId = parseBonusPayload(q.invoice_payload);
+  if (!userId) {
+    await ctx.answerPreCheckoutQuery(false, { error_message: 'Некорректный счёт.' });
+    return;
+  }
+
+  const row = await getUserById(userId);
+  if (!row || String(row.telegram_id) !== String(q.from.id)) {
+    await ctx.answerPreCheckoutQuery(false, { error_message: 'Этот счёт не для тебя.' });
+    return;
+  }
+
+  if (q.currency !== 'XTR' || q.total_amount !== STARS_EXTRA_PACK_PRICE) {
+    await ctx.answerPreCheckoutQuery(false, { error_message: 'Неверная сумма.' });
+    return;
+  }
+
+  await ctx.answerPreCheckoutQuery(true);
+}
+
+export async function handleSuccessfulStarPayment(ctx: Context): Promise<void> {
+  const msg = ctx.message;
+  const sp = msg?.successful_payment;
+  if (!sp || !ctx.from) return;
+
+  if (sp.currency !== 'XTR' || sp.total_amount !== STARS_EXTRA_PACK_PRICE) {
+    console.warn('Stars payment: unexpected amount/currency', sp);
+    return;
+  }
+
+  const userId = parseBonusPayload(sp.invoice_payload);
+  if (!userId) return;
+
+  const row = await getUserById(userId);
+  if (!row || String(row.telegram_id) !== String(ctx.from.id)) {
+    console.warn('Stars payment: user mismatch', userId);
+    return;
+  }
+
+  const chargeId = sp.telegram_payment_charge_id;
+  const client = await db.connect();
+  try {
+    await client.query('BEGIN');
+    const ins = await client.query(
+      `INSERT INTO processed_star_payments (charge_id, user_id) VALUES ($1, $2)
+       ON CONFLICT (charge_id) DO NOTHING RETURNING charge_id`,
+      [chargeId, userId]
+    );
+    if (ins.rowCount === 0) {
+      await client.query('ROLLBACK');
+      return;
+    }
+    await client.query('UPDATE users SET bonus_balance = bonus_balance + $1 WHERE id = $2', [
+      STARS_EXTRA_PACK_CALLS,
+      userId,
+    ]);
+    await client.query(
+      'INSERT INTO transactions (user_id, stars_amount, type) VALUES ($1, $2, $3)',
+      [userId, STARS_EXTRA_PACK_PRICE, 'purchase']
+    );
+    await client.query('COMMIT');
+  } catch (e) {
+    await client.query('ROLLBACK');
+    throw e;
+  } finally {
+    client.release();
+  }
+
+  await ctx.reply(
+    `Капитан принял ${STARS_EXTRA_PACK_PRICE} ⭐. Начислено +${STARS_EXTRA_PACK_CALLS} вызовов без срока — потратятся после бесплатного лимита.`
+  );
+}

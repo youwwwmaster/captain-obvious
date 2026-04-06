@@ -4,7 +4,12 @@ import { openaiProvider } from './ai/openai';
 import { anthropicProvider } from './ai/anthropic';
 import { AiMessage } from './ai/provider';
 import { findOrCreateUser } from './db/repositories/user';
-import { countTodayRequests, logRequest } from './db/repositories/request';
+import {
+  countFreeRequestsLast24h,
+  logRequest,
+  consumeBonusSlot,
+} from './db/repositories/request';
+import { sendExtraCallsInvoice, STARS_EXTRA_PACK_PRICE, STARS_EXTRA_PACK_CALLS } from './payments';
 
 const TRIGGERS = [
   'капитан объясни',
@@ -17,7 +22,8 @@ const TRIGGERS = [
 
 const LIMIT_TRIGGER = 'эй капитан лимит';
 
-const UNKNOWN_MESSAGE = 'Мы не знаем что это такое.... Если бы мы знали что это такое...';
+const UNKNOWN_MESSAGE =
+  'Мы не знаем что это такое.... Если бы мы знали что это такое... Но это точно не текст и не картинка';
 
 const provider = config.ai.provider === 'anthropic' ? anthropicProvider : openaiProvider;
 
@@ -27,7 +33,7 @@ function hasLimitTrigger(text: string): boolean {
 
 function hasTrigger(text: string): boolean {
   const lower = text.toLowerCase();
-  return TRIGGERS.some(t => lower.includes(t));
+  return TRIGGERS.some((t) => lower.includes(t));
 }
 
 export async function handleMessage(ctx: Context): Promise<void> {
@@ -36,22 +42,20 @@ export async function handleMessage(ctx: Context): Promise<void> {
 
   const text = msg.text || msg.caption || '';
 
-  // Лимит: без реплая, без списания запроса, до остальных триггеров
   if (hasLimitTrigger(text)) {
     const user = await findOrCreateUser(ctx.from.id, ctx.from.username);
-    const used = await countTodayRequests(user.id);
-    const remaining = Math.max(0, user.daily_limit - used);
+    const freeUsed = await countFreeRequestsLast24h(user.id);
+    const remainingFree = Math.max(0, user.daily_limit - freeUsed);
+    const bonus = Number(user.bonus_balance) || 0;
     await ctx.reply(
-      `Капитан подсказывает: за последние 24 часа ты использовал ${used} из ${user.daily_limit} запросов. Осталось: ${remaining}.`,
+      `Капитан подсказывает: бесплатных за последние 24 ч: ${freeUsed} из ${user.daily_limit} (осталось ${remainingFree}). Купленных вызовов в запасе: ${bonus}.`,
       { reply_parameters: { message_id: msg.message_id } }
     );
     return;
   }
 
-  // 1. Есть триггер? Нет → игнор (без БД)
   if (!hasTrigger(text)) return;
 
-  // 2. Есть реплай? Нет → фраза без API
   if (!msg.reply_to_message) {
     await ctx.reply(UNKNOWN_MESSAGE, {
       reply_parameters: { message_id: msg.message_id },
@@ -61,7 +65,6 @@ export async function handleMessage(ctx: Context): Promise<void> {
 
   const replied = msg.reply_to_message;
 
-  // 3. Определяем тип контента реплая
   let aiMessage: AiMessage;
 
   if (replied.photo) {
@@ -84,34 +87,40 @@ export async function handleMessage(ctx: Context): Promise<void> {
       text: replied.text,
     };
   } else {
-    // Документ, видео, голосовое, стикер и т.д. → фраза без API
     await ctx.reply(UNKNOWN_MESSAGE, {
       reply_parameters: { message_id: msg.message_id },
     });
     return;
   }
 
-  // 4. Находим или создаём юзера
   const user = await findOrCreateUser(ctx.from.id, ctx.from.username);
+  const freeUsed = await countFreeRequestsLast24h(user.id);
+  const bonus = Number(user.bonus_balance) || 0;
 
-  // 5. Проверяем rate limit
-  const todayCount = await countTodayRequests(user.id);
-  if (todayCount >= user.daily_limit) {
+  const canUseFree = freeUsed < user.daily_limit;
+  const canUseBonus = bonus > 0;
+
+  if (!canUseFree && !canUseBonus) {
     await ctx.reply(
-      `Капитан устал! Лимит ${user.daily_limit} запросов в день исчерпан. Возвращайся завтра.`,
+      `Капитан устал! Бесплатный лимит ${user.daily_limit} запросов за 24 ч исчерпан, купленных вызовов нет. За ${STARS_EXTRA_PACK_PRICE} ⭐ — ещё ${STARS_EXTRA_PACK_CALLS} вызовов без срока (тратятся после бесплатных). Счёт ниже.`,
       { reply_parameters: { message_id: msg.message_id } }
     );
+    await sendExtraCallsInvoice(ctx, msg.message_id);
     return;
   }
 
-  // 6. Запрос к AI
   try {
     const answer = await provider.complete(config.ai.systemPrompt, aiMessage);
 
-    // 7. Логируем запрос
-    await logRequest(user.id);
+    if (canUseFree) {
+      await logRequest(user.id, 'free');
+    } else {
+      const consumed = await consumeBonusSlot(user.id);
+      if (!consumed) {
+        console.error('consumeBonusSlot failed after AI success', user.id);
+      }
+    }
 
-    // 8. Отвечаем
     await ctx.reply(answer, {
       reply_parameters: { message_id: replied.message_id },
     });
