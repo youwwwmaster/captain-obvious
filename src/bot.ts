@@ -4,6 +4,7 @@ import { handleMessage } from './handler';
 import { handlePreCheckoutQuery, handleSuccessfulStarPayment } from './payments';
 import { handleTermsCommand } from './legal';
 import { handleSupportCommand } from './support';
+import { handleStartCommand } from './welcome';
 
 export const bot = new Bot(config.bot.token);
 
@@ -17,6 +18,7 @@ bot.use(async (ctx, next) => {
   await next();
 });
 
+bot.command('start', handleStartCommand);
 bot.command('terms', handleTermsCommand);
 bot.command('support', handleSupportCommand);
 
