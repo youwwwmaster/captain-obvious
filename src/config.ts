@@ -19,7 +19,7 @@ export const config = {
     token: required('BOT_TOKEN'),
     webhookDomain: required('WEBHOOK_DOMAIN'),
     webhookPort: parseInt(optional('WEBHOOK_PORT', '3000')),
-    /** Числовой Telegram user id администратора (куда пересылаются обращения /support) */
+    /** Куда слать /support: числовой user id или @username (без пробелов) */
     supportAdminChatId: optional('SUPPORT_ADMIN_CHAT_ID', ''),
   },
   ai: {
