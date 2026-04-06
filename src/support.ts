@@ -1,5 +1,6 @@
 import { Context } from 'grammy';
 import { config } from './config';
+import { escapeMarkdownV2 as esc, mdBold as b, mdCode as c } from './tgMarkdownV2';
 
 /** Пользователи, которым после /support нужно принять одно обращение */
 const awaitingTicket = new Set<number>();
@@ -12,10 +13,6 @@ function supportAdminId(): number | null {
   return Number.isFinite(id) && id !== 0 ? id : null;
 }
 
-function escapeHtml(s: string): string {
-  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-}
-
 /** То же сообщение, что обработал bot.command('support') — не считаем тикетом */
 function isBareSupportCommand(text: string | undefined): boolean {
   if (!text) return false;
@@ -23,40 +20,40 @@ function isBareSupportCommand(text: string | undefined): boolean {
 }
 
 const MSG_INSTRUCTIONS = [
-  '📩 <b>Поддержка</b>',
+  `📩 ${b('Поддержка')}`,
   '',
-  'Кратко опишите, в чём проблема: что вы делали и что пошло не так.',
+  esc('Кратко опишите, в чём проблема: что вы делали и что пошло не так.'),
   '',
-  '<b>Что поможет разобраться быстрее</b>',
-  '• скриншот экрана',
-  '• или короткое видео / скринкаст, где видно проблему',
+  b('Что поможет разобраться быстрее'),
+  esc('• скриншот экрана'),
+  esc('• или короткое видео / скринкаст, где видно проблему'),
   '',
-  'Пришлите <b>одним сообщением</b>: текст (при необходимости — подпись к фото или видео) и вложения.',
+  `${esc('Пришлите ')}${b('одним сообщением')}${esc(': текст (при необходимости — подпись к фото или видео) и вложения.')}`,
   '',
-  'После отправки я передам обращение администратору и пришлю подтверждение.',
+  esc('После отправки я передам обращение администратору и пришлю подтверждение.'),
 ].join('\n');
 
 const MSG_ACCEPTED = [
-  '✅ <b>Обращение принято</b>',
+  `✅ ${b('Обращение принято')}`,
   '',
-  'Спасибо, мы получили ваше сообщение и передали его на рассмотрение.',
+  esc('Спасибо, мы получили ваше сообщение и передали его на рассмотрение.'),
   '',
-  '⏱ <b>Срок ответа — до 48 часов.</b>',
-  'В этом интервале мы обязательно ответим вам здесь, в чате с ботом.',
+  `⏱ ${b('Срок ответа — до 48 часов.')}`,
+  esc('Свяжемся с вами в Telegram в пределах этого срока (ответ с аккаунта поддержки или через бота, если настроено).'),
   '',
-  'Если нужно отправить ещё одно обращение — снова введите /support и пришлите новое сообщение.',
+  esc('Если нужно отправить ещё одно обращение — снова введите /support и пришлите новое сообщение.'),
 ].join('\n');
 
 const MSG_NO_ADMIN = [
-  '⚠️ Служба поддержки сейчас недоступна.',
+  esc('⚠️ Служба поддержки сейчас недоступна.'),
   '',
-  'Попробуйте позже или воспользуйтесь контактом из описания бота.',
+  esc('Попробуйте позже или воспользуйтесь контактом из описания бота.'),
 ].join('\n');
 
 const MSG_FORWARD_FAILED = [
-  'Не удалось доставить обращение администратору.',
+  esc('Не удалось доставить обращение администратору.'),
   '',
-  'Попробуйте отправить ещё раз через минуту. Если ошибка повторяется — напишите нам другим способом (контакт в описании бота).',
+  esc('Попробуйте отправить ещё раз через минуту. Если ошибка повторяется — напишите нам другим способом (контакт в описании бота).'),
 ].join('\n');
 
 export async function handleSupportCommand(ctx: Context): Promise<void> {
@@ -64,13 +61,13 @@ export async function handleSupportCommand(ctx: Context): Promise<void> {
   if (!from) return;
 
   if (!supportAdminId()) {
-    await ctx.reply(MSG_NO_ADMIN, { link_preview_options: { is_disabled: true } });
+    await ctx.reply(MSG_NO_ADMIN, { parse_mode: 'MarkdownV2', link_preview_options: { is_disabled: true } });
     return;
   }
 
   awaitingTicket.add(from.id);
   await ctx.reply(MSG_INSTRUCTIONS, {
-    parse_mode: 'HTML',
+    parse_mode: 'MarkdownV2',
     link_preview_options: { is_disabled: true },
     reply_parameters: ctx.message ? { message_id: ctx.message.message_id } : undefined,
   });
@@ -94,7 +91,7 @@ export async function maybeHandleSupportReply(ctx: Context): Promise<boolean> {
   const adminId = supportAdminId();
   if (!adminId) {
     awaitingTicket.delete(from.id);
-    await ctx.reply(MSG_NO_ADMIN, { link_preview_options: { is_disabled: true } });
+    await ctx.reply(MSG_NO_ADMIN, { parse_mode: 'MarkdownV2', link_preview_options: { is_disabled: true } });
     return true;
   }
 
@@ -106,26 +103,26 @@ export async function maybeHandleSupportReply(ctx: Context): Promise<boolean> {
   const uname = from.username ? `@${from.username}` : 'без username';
   const name = [from.first_name, from.last_name].filter(Boolean).join(' ') || '—';
   const header = [
-    '🎫 <b>Обращение в поддержку</b>',
+    `🎫 ${b('Обращение в поддержку')}`,
     '',
-    `👤 ${escapeHtml(name)} (${escapeHtml(uname)})`,
-    `🆔 <code>${from.id}</code>`,
+    `${esc('👤')} ${esc(name)} \\(${esc(uname)}\\)`,
+    `${esc('🆔')} ${c(String(from.id))}`,
     '',
-    'Ниже — пересланное сообщение пользователя:',
+    esc('Ниже — пересланное сообщение пользователя:'),
   ].join('\n');
 
   try {
-    await ctx.api.sendMessage(adminId, header, { parse_mode: 'HTML' });
+    await ctx.api.sendMessage(adminId, header, { parse_mode: 'MarkdownV2' });
     await ctx.api.forwardMessage(adminId, msg.chat.id, msg.message_id);
   } catch (e) {
     console.error('support forward failed', e);
-    await ctx.reply(MSG_FORWARD_FAILED, { link_preview_options: { is_disabled: true } });
+    await ctx.reply(MSG_FORWARD_FAILED, { parse_mode: 'MarkdownV2', link_preview_options: { is_disabled: true } });
     return true;
   }
 
   awaitingTicket.delete(from.id);
   await ctx.reply(MSG_ACCEPTED, {
-    parse_mode: 'HTML',
+    parse_mode: 'MarkdownV2',
     link_preview_options: { is_disabled: true },
     reply_parameters: { message_id: msg.message_id },
   });
