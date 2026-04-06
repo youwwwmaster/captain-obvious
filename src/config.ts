@@ -19,7 +19,7 @@ export const config = {
     token: required('BOT_TOKEN'),
     webhookDomain: required('WEBHOOK_DOMAIN'),
     webhookPort: parseInt(optional('WEBHOOK_PORT', '3000')),
-    /** Куда слать /support: числовой user id или @username (без пробелов) */
+    /** Куда слать /support: только числовой user id админа (Bot API не шлёт в личку по @username) */
     supportAdminChatId: optional('SUPPORT_ADMIN_CHAT_ID', ''),
   },
   ai: {

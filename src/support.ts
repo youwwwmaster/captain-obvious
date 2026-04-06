@@ -4,22 +4,12 @@ import { config } from './config';
 /** Пользователи, которым после /support нужно принять одно обращение */
 const awaitingTicket = new Set<number>();
 
-/**
- * Числовой user id или @username (как в Bot API для chat_id).
- * Username: 5–32 символа, с буквы (как в Telegram).
- */
-function parseSupportAdminDestination(): number | string | null {
+/** Только числовой Telegram user id. @username в личку через Bot API не работает — ограничение платформы. */
+function supportAdminId(): number | null {
   const raw = config.bot.supportAdminChatId.trim();
-  if (!raw) return null;
-  if (/^-?\d+$/.test(raw)) {
-    const id = Number(raw);
-    return Number.isFinite(id) && id !== 0 ? id : null;
-  }
-  const u = raw.replace(/^@/, '').toLowerCase();
-  if (/^[a-z][a-z0-9_]{4,31}$/.test(u)) {
-    return `@${u}`;
-  }
-  return null;
+  if (!raw || !/^-?\d+$/.test(raw)) return null;
+  const id = Number(raw);
+  return Number.isFinite(id) && id !== 0 ? id : null;
 }
 
 function escapeHtml(s: string): string {
@@ -73,7 +63,7 @@ export async function handleSupportCommand(ctx: Context): Promise<void> {
   const from = ctx.from;
   if (!from) return;
 
-  if (!parseSupportAdminDestination()) {
+  if (!supportAdminId()) {
     await ctx.reply(MSG_NO_ADMIN, { link_preview_options: { is_disabled: true } });
     return;
   }
@@ -101,8 +91,8 @@ export async function maybeHandleSupportReply(ctx: Context): Promise<boolean> {
     return false;
   }
 
-  const adminDest = parseSupportAdminDestination();
-  if (!adminDest) {
+  const adminId = supportAdminId();
+  if (!adminId) {
     awaitingTicket.delete(from.id);
     await ctx.reply(MSG_NO_ADMIN, { link_preview_options: { is_disabled: true } });
     return true;
@@ -125,8 +115,8 @@ export async function maybeHandleSupportReply(ctx: Context): Promise<boolean> {
   ].join('\n');
 
   try {
-    await ctx.api.sendMessage(adminDest, header, { parse_mode: 'HTML' });
-    await ctx.api.forwardMessage(adminDest, msg.chat.id, msg.message_id);
+    await ctx.api.sendMessage(adminId, header, { parse_mode: 'HTML' });
+    await ctx.api.forwardMessage(adminId, msg.chat.id, msg.message_id);
   } catch (e) {
     console.error('support forward failed', e);
     await ctx.reply(MSG_FORWARD_FAILED, { link_preview_options: { is_disabled: true } });
