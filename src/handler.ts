@@ -8,6 +8,8 @@ import { countTodayRequests, logRequest } from './db/repositories/request';
 
 const TRIGGERS = [
   'капитан объясни',
+  'эй капитан',
+  'эй, капитан',
   'капитан поясни',
   'капитан твой выход',
   'капитан объясняй',
