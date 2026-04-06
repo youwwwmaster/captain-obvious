@@ -10,6 +10,7 @@ import {
   consumeBonusSlot,
 } from './db/repositories/request';
 import { sendExtraCallsInvoice, STARS_EXTRA_PACK_PRICE, STARS_EXTRA_PACK_CALLS } from './payments';
+import { maybeHandleSupportReply } from './support';
 
 const TRIGGERS = [
   'капитан объясни',
@@ -39,6 +40,8 @@ function hasTrigger(text: string): boolean {
 export async function handleMessage(ctx: Context): Promise<void> {
   const msg = ctx.message;
   if (!msg || !ctx.from) return;
+
+  if (await maybeHandleSupportReply(ctx)) return;
 
   const text = msg.text || msg.caption || '';
 

@@ -2,7 +2,8 @@ import { Bot, webhookCallback } from 'grammy';
 import { config } from './config';
 import { handleMessage } from './handler';
 import { handlePreCheckoutQuery, handleSuccessfulStarPayment } from './payments';
-import { handleSupportCommand, handleTermsCommand } from './legal';
+import { handleTermsCommand } from './legal';
+import { handleSupportCommand } from './support';
 
 export const bot = new Bot(config.bot.token);
 
@@ -18,7 +19,6 @@ bot.use(async (ctx, next) => {
 
 bot.command('terms', handleTermsCommand);
 bot.command('support', handleSupportCommand);
-bot.command('paysupport', handleSupportCommand);
 
 bot.on('message', handleMessage);
 
