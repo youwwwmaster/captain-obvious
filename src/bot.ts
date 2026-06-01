@@ -43,4 +43,7 @@ bot.catch((err) => {
   console.error('Ошибка бота:', err);
 });
 
-export const handleUpdate = webhookCallback(bot, 'http');
+export const handleUpdate = webhookCallback(bot, 'http', {
+  onTimeout: () => console.warn('Webhook: update > 10 с, задание сброшено'),
+  timeoutMilliseconds: 10_000,
+});

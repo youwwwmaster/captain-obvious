@@ -20,7 +20,15 @@ async function bootstrap(): Promise<void> {
   // HTTP сервер
   const server = http.createServer(async (req, res) => {
     if (req.method === 'POST' && req.url === '/webhook') {
-      await handleUpdate(req, res);
+      try {
+        await handleUpdate(req, res);
+      } catch (err) {
+        console.error('Webhook error:', err);
+        if (!res.headersSent) {
+          res.writeHead(500);
+          res.end();
+        }
+      }
     } else if (req.url === '/health') {
       res.writeHead(200);
       res.end('OK');
