@@ -3,3 +3,6 @@ dist/
 .env
 *.log
 .DS_Store
+
+# Внутренняя инструкция по PROD (домен, nginx, пути на сервере)
+docs/DEPLOY.md
