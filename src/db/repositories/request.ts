@@ -2,7 +2,7 @@ import { db } from '../../db';
 
 export type RequestSource = 'free' | 'bonus';
 
-/** Сколько бесплатных вызовов за последние 24 часа (только source=free). */
+/** Free calls in the last 24 hours (source=free only). */
 export async function countFreeRequestsLast24h(userId: string): Promise<number> {
   const result = await db.query<{ count: string }>(
     `SELECT COUNT(*) FROM requests
@@ -16,7 +16,7 @@ export async function logRequest(userId: string, source: RequestSource): Promise
   await db.query('INSERT INTO requests (user_id, source) VALUES ($1, $2)', [userId, source]);
 }
 
-/** Атомарно: −1 bonus_balance и запись запроса bonus. */
+/** Atomically: decrement bonus_balance and log a bonus request. */
 export async function consumeBonusSlot(userId: string): Promise<boolean> {
   const r = await db.query<{ id: string }>(
     `WITH u AS (

@@ -2,10 +2,10 @@ import { Context } from 'grammy';
 import { config } from './config';
 import { escapeMarkdownV2 as esc, mdBold as b, mdCode as c } from './tgMarkdownV2';
 
-/** Пользователи, которым после /support нужно принять одно обращение */
+/** Users waiting to send one message after /support */
 const awaitingTicket = new Set<number>();
 
-/** Только числовой Telegram user id. @username в личку через Bot API не работает — ограничение платформы. */
+/** Numeric Telegram user id only. Bot API cannot DM by @username. */
 function supportAdminId(): number | null {
   const raw = config.bot.supportAdminChatId.trim();
   if (!raw || !/^-?\d+$/.test(raw)) return null;
@@ -13,47 +13,47 @@ function supportAdminId(): number | null {
   return Number.isFinite(id) && id !== 0 ? id : null;
 }
 
-/** То же сообщение, что обработал bot.command('support') — не считаем тикетом */
+/** Same as bot.command('support') — not a ticket body */
 function isBareSupportCommand(text: string | undefined): boolean {
   if (!text) return false;
   return /^\/support(?:@[\w]+)?$/i.test(text.trim());
 }
 
 const MSG_INSTRUCTIONS = [
-  `📩 ${b('Поддержка')}`,
+  `📩 ${b('Support')}`,
   '',
-  esc('Кратко опишите, в чём проблема: что вы делали и что пошло не так.'),
+  esc('Briefly describe the issue: what you did and what went wrong.'),
   '',
-  b('Что поможет разобраться быстрее'),
-  esc('• скриншот экрана'),
-  esc('• или короткое видео / скринкаст, где видно проблему'),
+  b('What helps us resolve faster'),
+  esc('• a screenshot'),
+  esc('• or a short video / screencast showing the problem'),
   '',
-  `${esc('Пришлите ')}${b('одним сообщением')}${esc(': текст (при необходимости — подпись к фото или видео) и вложения.')}`,
+  `${esc('Send ')}${b('one message')}${esc(': text (caption on photo/video if needed) and attachments.')}`,
   '',
-  esc('После отправки я передам обращение администратору и пришлю подтверждение.'),
+  esc('We will forward it to the admin and send you a confirmation.'),
 ].join('\n');
 
 const MSG_ACCEPTED = [
-  `✅ ${b('Обращение принято')}`,
+  `✅ ${b('Request received')}`,
   '',
-  esc('Спасибо, мы получили ваше сообщение и передали его на рассмотрение.'),
+  esc('Thank you — we got your message and passed it for review.'),
   '',
-  `⏱ ${b('Срок ответа — до 48 часов.')}`,
-  esc('Свяжемся с вами в Telegram в пределах этого срока.'),
+  `⏱ ${b('Response time: up to 48 hours.')}`,
+  esc('We will reach you here on Telegram within that window.'),
   '',
-  esc('Если нужно отправить ещё одно обращение — снова введите /support и пришлите новое сообщение.'),
+  esc('To send another request, run /support again and send a new message.'),
 ].join('\n');
 
 const MSG_NO_ADMIN = [
-  esc('⚠️ Служба поддержки сейчас недоступна.'),
+  esc('⚠️ Support is unavailable right now.'),
   '',
-  esc('Попробуйте позже или воспользуйтесь контактом из описания бота.'),
+  esc('Try again later or use the contact in the bot description.'),
 ].join('\n');
 
 const MSG_FORWARD_FAILED = [
-  esc('Не удалось доставить обращение администратору.'),
+  esc('Could not deliver your message to the admin.'),
   '',
-  esc('Попробуйте отправить ещё раз через минуту. Если ошибка повторяется — напишите нам другим способом (контакт в описании бота).'),
+  esc('Try again in a minute. If it keeps failing, contact us another way (see bot description).'),
 ].join('\n');
 
 export async function handleSupportCommand(ctx: Context): Promise<void> {
@@ -74,8 +74,8 @@ export async function handleSupportCommand(ctx: Context): Promise<void> {
 }
 
 /**
- * Если пользователь ждёт отправки тикета — пересылаем админу и отвечаем пользователю.
- * @returns true, если сообщение обработано (дальше по цепочке не идём)
+ * If the user is waiting to file a ticket — forward to admin and confirm.
+ * @returns true if the message was handled (stop the chain)
  */
 export async function maybeHandleSupportReply(ctx: Context): Promise<boolean> {
   const from = ctx.from;
@@ -100,15 +100,15 @@ export async function maybeHandleSupportReply(ctx: Context): Promise<boolean> {
     return false;
   }
 
-  const uname = from.username ? `@${from.username}` : 'без username';
+  const uname = from.username ? `@${from.username}` : 'no username';
   const name = [from.first_name, from.last_name].filter(Boolean).join(' ') || '—';
   const header = [
-    `🎫 ${b('Обращение в поддержку')}`,
+    `🎫 ${b('Support request')}`,
     '',
     `${esc('👤')} ${esc(name)} \\(${esc(uname)}\\)`,
     `${esc('🆔')} ${c(String(from.id))}`,
     '',
-    esc('Ниже — пересланное сообщение пользователя:'),
+    esc('Forwarded user message below:'),
   ].join('\n');
 
   try {

@@ -12,7 +12,7 @@ export async function runMigrations(): Promise<void> {
   for (const file of files) {
     const sql = fs.readFileSync(path.join(migrationsDir, file), 'utf-8');
     await db.query(sql);
-    console.log(`✅ Миграция ${file}`);
+    console.log(`✅ Migration ${file}`);
   }
-  console.log('✅ Миграции выполнены');
+  console.log('✅ Migrations complete');
 }

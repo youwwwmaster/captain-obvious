@@ -1,5 +1,5 @@
 /**
- * Telegram Bot API — MarkdownV2 (актуальный режим с полным набором сущностей).
+ * Telegram Bot API — MarkdownV2 (full entity set).
  * @see https://core.telegram.org/bots/api#markdownv2-style
  */
 
@@ -25,7 +25,7 @@ const MD2_SPECIAL = new Set<string>([
   '\\',
 ]);
 
-/** Экранирование произвольного текста вне code/pre (все зарезервированные символы). */
+/** Escape plain text outside code/pre (all reserved characters). */
 export function escapeMarkdownV2(text: string): string {
   let out = '';
   for (const c of text) {
@@ -34,7 +34,7 @@ export function escapeMarkdownV2(text: string): string {
   return out;
 }
 
-/** Внутри inline code: только ` и \\ */
+/** Inside inline code: escape only ` and \\ */
 export function escapeMd2Code(text: string): string {
   return text.replace(/\\/g, '\\\\').replace(/`/g, '\\`');
 }
@@ -51,7 +51,7 @@ export function mdCode(text: string): string {
   return `\`${escapeMd2Code(text)}\``;
 }
 
-/** Inline-ссылка: в URL экранируются `)` и `\` (Bot API MarkdownV2). */
+/** Inline link: escape `)` and `\` in the URL (Bot API MarkdownV2). */
 export function mdLink(label: string, url: string): string {
   const escUrl = url.replace(/\\/g, '\\\\').replace(/\)/g, '\\)');
   return `[${escapeMarkdownV2(label)}](${escUrl})`;

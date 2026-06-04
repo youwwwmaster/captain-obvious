@@ -1,72 +1,58 @@
-# Бот "Капитан Очевидность"
+# Captain Obvious bot
 
-## Что делает бот:
-- Сидит в групповом чате
-- Ловит реплай с триггером "Капитан объясни" (и варианты)
-- Берёт контент из сообщения на которое сделан реплай
-- Объясняет простым языком
-- Отвечает в чат
+## Behavior
+- Lives in a group chat
+- Matches a reply that contains a trigger phrase
+- Takes content from the message being replied to
+- Explains it in plain language
+- Posts the answer in the chat
 
-## Условия срабатывания:
-- ✅ Сообщение содержит триггер И является реплаем на другое сообщение
-- ❌ Триггер без реплая — отвечает той же фразой без вызова API:
-  "Мы не знаем что это такое.... Если бы мы знали что это такое..."
+## Activation rules
+- ✅ Trigger present **and** message is a reply → call the LLM
+- ❌ Trigger without a reply → canned reply, no API:
+  "We don't know what this is.... If we knew what this was... But it's definitely not text or an image"
 
-## Типы контента:
-- ✅ Текст — обрабатывает, объясняет
-- ✅ Фото — обрабатывает, объясняет
-- ❌ Всё остальное (документы, видео, голосовые, стикеры и т.д.) — отвечает фразой без запроса к API:
-  "Мы не знаем что это такое.... Если бы мы знали что это такое..."
+## Content types
+- ✅ Text — processed and explained
+- ✅ Photo — processed and explained
+- ❌ Everything else (documents, video, voice, stickers, etc.) → canned reply, no API
 
-## Триггеры (регистронезависимо):
-- "капитан объясни"
-- "капитан поясни"
-- "капитан твой выход"
-- "капитан объясняй"
+## Triggers (case-insensitive)
+- "captain explain"
+- "captain clarify"
+- "captain your turn"
+- "captain explain more"
+- "hey captain"
+- "hey, captain"
 
+## System prompt
+- File: `prompt.md`
+- Read with `fs.readFileSync` at startup
+- Sent as the system message on every API request
+- Mounted in Docker as a volume (change without rebuild)
 
-## Системный промт:
-- Файл prompt.md
-- Читается через fs.readFileSync при старте
-- Передаётся как system message в каждый запрос к API
-- Монтируется в Docker как volume (можно менять без пересборки)
+## AI
+- Default: OpenAI `gpt-5.4-mini` (or set via `MODEL`)
+- Provider abstraction: switch to Anthropic Claude via `.env`
+- Config: `AI_PROVIDER=openai | anthropic`, `MODEL=…`
 
+## Webhook
+- Domain in `.env`
+- Bot registers webhook on startup via Telegram API
 
-- По умолчанию: OpenAI gpt-5.4-mini (бесплатные токены за шаринг данных)
-- Архитектура: абстракция под провайдера — легко переключить на Anthropic Claude если нужно
-- Конфиг через .env: AI_PROVIDER=openai | anthropic, MODEL=gpt-4.1-mini | claude-haiku
+## Runtime
+- Docker, standalone container
 
+## Database (PostgreSQL)
+- `users` — telegram_id, username, created_at, limits, bonus balance
+- `requests` — user_id, created_at (rate limiting)
+- `transactions` — user_id, stars_amount, type (purchase/spend), created_at
 
-- Русский по умолчанию
+## Rate limiting
+- Enforced in PostgreSQL
+- Rolling 24h free quota (`DAILY_LIMIT`)
+- Extra calls via Telegram Stars packs
 
-## Системный промт:
-- Один файл prompt.txt
-- Монтируется в Docker как volume (удобно менять без пересборки)
-
-
-- BOT_TOKEN — токен бота
-- WEBHOOK_DOMAIN — домен для webhook
-- AI_PROVIDER — openai | anthropic
-- MODEL — gpt-5.4-mini | claude-haiku (и т.д.)
-- OPENAI_API_KEY
-- ANTHROPIC_API_KEY
-- DATABASE_URL
-
-## Webhook:
-- Домен в .env
-- При старте бот сам регистрирует webhook через Telegram API
-
-
-- Docker, независимый контейнер
-
-## База данных:
-- PostgreSQL
-- Таблицы:
-  - `users` — telegram_id, username, created_at
-  - `requests` — user_id, created_at (история запросов для rate limiting)
-  - `transactions` — user_id, stars_amount, type (purchase/spend), created_at (под монетизацию)
-
-## Rate limiting:
-- Считается через PostgreSQL
-- Базовый лимит — N запросов в день (число не решено)
-- В будущем: увеличение лимита за Telegram Stars
+## Research direction
+- Experimental sandbox for agentic AI in real Telegram workloads
+- Prompt injection resistance and guardrails (see README)

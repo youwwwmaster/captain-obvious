@@ -1,7 +1,7 @@
 {
   "name": "captain-obvious-bot",
   "version": "0.1.0",
-  "description": "Telegram бот Капитан Очевидность",
+  "description": "Captain Obvious — Telegram bot (experimental OSS sandbox)",
   "private": true,
   "scripts": {
     "build": "tsc",

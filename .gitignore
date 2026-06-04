@@ -4,5 +4,5 @@ dist/
 *.log
 .DS_Store
 
-# Внутренняя инструкция по PROD (домен, nginx, пути на сервере)
+# Internal PROD deploy notes (domain, nginx, server paths)
 docs/DEPLOY.md

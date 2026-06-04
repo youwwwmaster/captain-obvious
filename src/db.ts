@@ -6,5 +6,5 @@ export const db = new Pool({
 });
 
 db.on('error', (err) => {
-  console.error('PostgreSQL ошибка:', err);
+  console.error('PostgreSQL error:', err);
 });

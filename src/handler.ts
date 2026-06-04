@@ -14,18 +14,18 @@ import { maybeHandleSupportReply } from './support';
 import { escapeMarkdownV2 as esc, mdBold as b, mdItalic as i, mdLink } from './tgMarkdownV2';
 
 const TRIGGERS = [
-  'капитан объясни',
-  'эй капитан',
-  'эй, капитан',
-  'капитан поясни',
-  'капитан твой выход',
-  'капитан объясняй',
+  'captain explain',
+  'hey captain',
+  'hey, captain',
+  'captain clarify',
+  'captain your turn',
+  'captain explain more',
 ];
 
-const LIMIT_TRIGGER = 'эй капитан лимит';
+const LIMIT_TRIGGER = 'hey captain limit';
 
 const UNKNOWN_MESSAGE =
-  'Мы не знаем что это такое.... Если бы мы знали что это такое... Но это точно не текст и не картинка';
+  "We don't know what this is.... If we knew what this was... But it's definitely not text or an image";
 
 const provider = config.ai.provider === 'anthropic' ? anthropicProvider : openaiProvider;
 
@@ -52,12 +52,12 @@ export async function handleMessage(ctx: Context): Promise<void> {
     const remainingFree = Math.max(0, user.daily_limit - freeUsed);
     const bonus = Number(user.bonus_balance) || 0;
     const limitStatsMsg = [
-      `🧭 ${b('Капитан подсказывает')}`,
+      `🧭 ${b('Captain says')}`,
       '',
-      `⏱ ${esc('Базовые запросы за последние 24 часа')}`,
-      `${b(`${freeUsed} из ${user.daily_limit}`)} · ${esc('осталось')} ${b(String(remainingFree))}`,
+      `⏱ ${esc('Free requests in the last 24 hours')}`,
+      `${b(`${freeUsed} of ${user.daily_limit}`)} · ${esc('left')} ${b(String(remainingFree))}`,
       '',
-      `⭐ ${esc('Экстра-вызовов в запасе:')} ${b(String(bonus))}`,
+      `⭐ ${esc('Extra calls in reserve:')} ${b(String(bonus))}`,
     ].join('\n');
     await ctx.reply(limitStatsMsg, {
       parse_mode: 'MarkdownV2',
@@ -115,16 +115,16 @@ export async function handleMessage(ctx: Context): Promise<void> {
   if (!canUseFree && !canUseBonus) {
     const uname = (ctx.me?.username || config.bot.botUsername).trim();
     const termsLine = uname
-      ? `_${esc('Оплачивая, ты принимаешь ')}${mdLink(
-          'условия использования бота',
+      ? `_${esc('By paying you accept the ')}${mdLink(
+          'bot terms of use',
           `https://t.me/${uname}?start=terms`
         )}${esc('.')}_`
-      : i('Оплачивая, ты принимаешь условия использования.');
+      : i('By paying you accept the terms of use.');
     const limitMsg = [
-      `😮‍💨 ${b('Капитан устал...')}`,
-      `${esc('Базовый лимит ')}${b(`${user.daily_limit} запросов`)}${esc(' за 24 ч исчерпан!')}`,
+      `😮‍💨 ${b('The Captain is tired...')}`,
+      `${esc('Free limit of ')}${b(`${user.daily_limit} requests`)}${esc(' per 24h is used up!')}`,
       '',
-      `☕ ${esc('Но если подкинешь на рюмку кофе — ')}${b(`${STARS_EXTRA_PACK_PRICE} ⭐`)}${esc(' я расскажу ещё ')}${b(`${STARS_EXTRA_PACK_CALLS} историй`)}${esc('!')}`,
+      `☕ ${esc('Buy me a coffee — ')}${b(`${STARS_EXTRA_PACK_PRICE} ⭐`)}${esc(' for ')}${b(`${STARS_EXTRA_PACK_CALLS} more stories`)}${esc('!')}`,
       '',
       termsLine,
     ].join('\n');
@@ -153,8 +153,8 @@ export async function handleMessage(ctx: Context): Promise<void> {
       reply_parameters: { message_id: replied.message_id },
     });
   } catch (err) {
-    console.error('Ошибка AI:', err);
-    await ctx.reply('Капитан временно недоступен. Попробуй позже.', {
+    console.error('AI error:', err);
+    await ctx.reply('Captain is temporarily unavailable. Try again later.', {
       reply_parameters: { message_id: msg.message_id },
     });
   }

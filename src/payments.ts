@@ -7,7 +7,7 @@ export const STARS_EXTRA_PACK_PRICE = config.stars.packPrice;
 export const STARS_EXTRA_PACK_CALLS = config.stars.packCalls;
 
 const PAYLOAD_PREFIX = 'bonus:';
-/** Старые счета до смены префикса */
+/** Legacy invoices before prefix change */
 const LEGACY_PAYLOAD_PREFIX = 'bonus10:';
 
 function buildPayload(userInternalId: string): string {
@@ -36,11 +36,11 @@ export async function sendExtraCallsInvoice(
   const u = await findOrCreateUser(user.id, user.username);
 
   await ctx.replyWithInvoice(
-    `+${STARS_EXTRA_PACK_CALLS} вызовов Капитана`,
-    'Покупка без срока: тратятся только после исчерпания бесплатных вызовов за 24ч.',
+    `+${STARS_EXTRA_PACK_CALLS} Captain calls`,
+    'No expiry: used only after the free 24h quota is exhausted.',
     buildPayload(u.id),
     'XTR',
-    [{ label: `+${STARS_EXTRA_PACK_CALLS} вызовов`, amount: STARS_EXTRA_PACK_PRICE }],
+    [{ label: `+${STARS_EXTRA_PACK_CALLS} calls`, amount: STARS_EXTRA_PACK_PRICE }],
     {
       provider_token: '',
       reply_parameters: { message_id: replyToMessageId },
@@ -54,18 +54,18 @@ export async function handlePreCheckoutQuery(ctx: Context): Promise<void> {
 
   const userId = parseBonusPayload(q.invoice_payload);
   if (!userId) {
-    await ctx.answerPreCheckoutQuery(false, { error_message: 'Некорректный счёт.' });
+    await ctx.answerPreCheckoutQuery(false, { error_message: 'Invalid invoice.' });
     return;
   }
 
   const row = await getUserById(userId);
   if (!row || String(row.telegram_id) !== String(q.from.id)) {
-    await ctx.answerPreCheckoutQuery(false, { error_message: 'Этот счёт не для тебя.' });
+    await ctx.answerPreCheckoutQuery(false, { error_message: 'This invoice is not for you.' });
     return;
   }
 
   if (q.currency !== 'XTR' || q.total_amount !== STARS_EXTRA_PACK_PRICE) {
-    await ctx.answerPreCheckoutQuery(false, { error_message: 'Неверная сумма.' });
+    await ctx.answerPreCheckoutQuery(false, { error_message: 'Invalid amount.' });
     return;
   }
 
@@ -121,6 +121,6 @@ export async function handleSuccessfulStarPayment(ctx: Context): Promise<void> {
   }
 
   await ctx.reply(
-    `Капитан принял ${STARS_EXTRA_PACK_PRICE} ⭐. Начислено +${STARS_EXTRA_PACK_CALLS} вызовов без срока — потратятся после бесплатного лимита.`
+    `Captain received ${STARS_EXTRA_PACK_PRICE} ⭐. +${STARS_EXTRA_PACK_CALLS} calls added (no expiry) — used after the free limit.`
   );
 }

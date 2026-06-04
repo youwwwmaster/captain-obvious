@@ -5,19 +5,15 @@ import { runMigrations } from './db/migrate';
 import { bot, handleUpdate } from './bot';
 
 async function bootstrap(): Promise<void> {
-  // Проверяем БД
   await db.query('SELECT 1');
-  console.log('✅ PostgreSQL подключён');
+  console.log('✅ PostgreSQL connected');
 
-  // Миграции
   await runMigrations();
 
-  // Регистрируем webhook
   const webhookUrl = `${config.bot.webhookDomain}/webhook`;
   await bot.api.setWebhook(webhookUrl);
   console.log(`✅ Webhook: ${webhookUrl}`);
 
-  // HTTP сервер
   const server = http.createServer(async (req, res) => {
     if (req.method === 'POST' && req.url === '/webhook') {
       try {
@@ -39,11 +35,11 @@ async function bootstrap(): Promise<void> {
   });
 
   server.listen(config.bot.webhookPort, () => {
-    console.log(`🚀 Порт ${config.bot.webhookPort}`);
+    console.log(`🚀 Listening on port ${config.bot.webhookPort}`);
   });
 }
 
 bootstrap().catch((err) => {
-  console.error('❌ Ошибка запуска:', err);
+  console.error('❌ Startup failed:', err);
   process.exit(1);
 });
