@@ -112,6 +112,7 @@ npm run dev
 | `WEBHOOK_PORT` | Порт HTTP внутри контейнера (проброс в compose) |
 | `AI_PROVIDER` | `openai` \| `anthropic` |
 | `MODEL` | Имя модели у провайдера |
+| `REASONING_EFFORT` | Reasoning для OpenAI: `low` (по умолчанию), `medium` или `high` |
 | `OPENAI_API_KEY` / `ANTHROPIC_API_KEY` | Ключи API |
 | `DB_PASSWORD` | Пароль Postgres (**обязателен**, дефолта нет) |
 | `DATABASE_URL` | Строка подключения к БД |

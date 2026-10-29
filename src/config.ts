@@ -22,6 +22,14 @@ function parsePositiveInt(key: string, def: string, min: number): number {
   return n;
 }
 
+function parseReasoningEffort(): 'low' | 'medium' | 'high' {
+  const value = optional('REASONING_EFFORT', 'low');
+  if (value !== 'low' && value !== 'medium' && value !== 'high') {
+    throw new Error('REASONING_EFFORT должен быть low, medium или high');
+  }
+  return value;
+}
+
 export const config = {
   bot: {
     token: required('BOT_TOKEN'),
@@ -34,7 +42,8 @@ export const config = {
   },
   ai: {
     provider: optional('AI_PROVIDER', 'openai') as 'openai' | 'anthropic',
-    model: optional('MODEL', 'gpt-5.4-mini'),
+    model: optional('MODEL', 'gpt-6.1-terra'),
+    reasoningEffort: parseReasoningEffort(),
     openaiApiKey: optional('OPENAI_API_KEY', ''),
     anthropicApiKey: optional('ANTHROPIC_API_KEY', ''),
     systemPrompt: fs.readFileSync(path.join(process.cwd(), 'prompt.md'), 'utf-8'),

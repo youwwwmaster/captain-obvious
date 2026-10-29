@@ -21,6 +21,7 @@ export const openaiProvider: AiProvider = {
 
     const response = await client.chat.completions.create({
       model: config.ai.model,
+      reasoning_effort: config.ai.reasoningEffort,
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userContent },
