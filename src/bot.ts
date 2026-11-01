@@ -1,4 +1,7 @@
-import { Bot, Context, webhookCallback } from 'grammy';
+import { Bot, Context, HttpError, webhookCallback } from 'grammy';
+import { Agent } from 'https';
+import { setTimeout as delay } from 'timers/promises';
+import { autoRetry } from '@grammyjs/auto-retry';
 import { config } from './config';
 import { handleMessage } from './handler';
 import { handlePreCheckoutQuery, handleSuccessfulStarPayment } from './payments';
@@ -6,7 +9,30 @@ import { handleTermsCommand } from './legal';
 import { handleSupportCommand } from './support';
 import { handleStartCommand } from './welcome';
 
-export const bot = new Bot(config.bot.token);
+const agent = new Agent({ keepAlive: true, family: 4 });
+
+export const bot = new Bot(config.bot.token, {
+  client: { baseFetchConfig: { agent, compress: true } },
+});
+
+// auto-retry 2.0.2 does not apply maxRetryAttempts to HttpError.
+// Let it handle 429/5xx, and bound network retries separately.
+const retryApi = autoRetry({
+  maxRetryAttempts: 2,
+  maxDelaySeconds: 5,
+  rethrowHttpErrors: true,
+});
+bot.api.config.use(async (prev, method, payload, signal) => {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await retryApi(prev, method, payload, signal);
+    } catch (err) {
+      if (!(err instanceof HttpError) || attempt >= 2 || signal?.aborted) throw err;
+      await delay(3000 * 2 ** attempt);
+      if (signal?.aborted) throw err;
+    }
+  }
+});
 
 /** Deep link `t.me/bot?start=terms` → в чат приходит `/start terms`. */
 function startPayload(ctx: Context): string {

@@ -137,25 +137,41 @@ export async function handleMessage(ctx: Context): Promise<void> {
     return;
   }
 
+  let answer: string;
   try {
-    const answer = await provider.complete(config.ai.systemPrompt, aiMessage);
-
-    if (canUseFree) {
-      await logRequest(user.id, 'free');
-    } else {
-      const consumed = await consumeBonusSlot(user.id);
-      if (!consumed) {
-        console.error('consumeBonusSlot failed after AI success', user.id);
-      }
+    answer = await provider.complete(config.ai.systemPrompt, aiMessage);
+  } catch (err) {
+    console.error('Ошибка AI:', err);
+    try {
+      await ctx.reply('Капитан временно недоступен. Попробуй позже.', {
+        reply_parameters: { message_id: msg.message_id },
+      });
+    } catch (sendErr) {
+      console.error('Ошибка отправки в Telegram:', sendErr);
     }
+    return;
+  }
 
+  if (canUseFree) {
+    await logRequest(user.id, 'free');
+  } else {
+    const consumed = await consumeBonusSlot(user.id);
+    if (!consumed) {
+      console.error('consumeBonusSlot failed after AI success', user.id);
+    }
+  }
+
+  const sendStartedAt = Date.now();
+  try {
     await ctx.reply(answer, {
       reply_parameters: { message_id: replied.message_id },
     });
-  } catch (err) {
-    console.error('Ошибка AI:', err);
-    await ctx.reply('Капитан временно недоступен. Попробуй позже.', {
-      reply_parameters: { message_id: msg.message_id },
+    console.log('Ответ отправлен в Telegram:', {
+      time: new Date().toISOString(),
+      chatId: ctx.chat?.id,
+      durationMs: Date.now() - sendStartedAt,
     });
+  } catch (err) {
+    console.error('Ошибка отправки в Telegram:', err);
   }
 }
