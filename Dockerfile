@@ -9,8 +9,6 @@ FROM node:22.23.4-alpine
 WORKDIR /app
 COPY package*.json ./
 RUN npm ci --omit=dev
-# npm/npx are not needed at runtime and carry their own CVEs (bundled tar, undici, brace-expansion): remove them.
-RUN rm -rf /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/src/db/migrations ./dist/db/migrations
 COPY prompt.md ./
