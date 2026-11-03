@@ -17,7 +17,7 @@ services:
         condition: service_healthy
 
   postgres:
-    image: postgres:16-alpine
+    image: postgres:16.15-alpine
     container_name: captain-obvious-postgres
     restart: unless-stopped
     environment:
