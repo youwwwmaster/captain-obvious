@@ -70,6 +70,7 @@ bot.catch((err) => {
 });
 
 export const handleUpdate = webhookCallback(bot, 'http', {
+  secretToken: config.bot.webhookSecretToken,
   onTimeout: () => console.warn('Webhook: update > 20 с, задание сброшено'),
   timeoutMilliseconds: 20_000,
 });

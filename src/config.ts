@@ -34,6 +34,8 @@ export const config = {
   bot: {
     token: required('BOT_TOKEN'),
     webhookDomain: required('WEBHOOK_DOMAIN'),
+    /** Telegram sends it in X-Telegram-Bot-Api-Secret-Token; updates without it are rejected. */
+    webhookSecretToken: required('WEBHOOK_SECRET_TOKEN'),
     webhookPort: parseInt(optional('WEBHOOK_PORT', '3000')),
     /** Без @. Нужен для t.me/… ссылок, если в апдейте нет ctx.me.username (часто группы). */
     botUsername: optional('BOT_USERNAME', '').replace(/^@/, '').trim(),
